@@ -27,7 +27,10 @@ for url in "$PAY" "$LED" "$NTF"; do
   check "health $url" "200" "$code"
 done
 
-echo "2. Платёж 1000.00 RUB: $FROM -> $TO"
+echo "2. Платёж 1000.00 RUB: $FROM -> $TO (комиссия 1% сверху: fee=1000, total=101000)"
+# acc_fee — общий системный счёт, накапливается между прогонами. Проверяем
+# дельту вокруг платежа, а не абсолютный баланс.
+fee_before=$(curl -s "$LED/accounts/acc_fee/balance" | php -r 'echo json_decode(stream_get_contents(STDIN))->balance ?? 0;')
 resp=$(curl -s -w '\n%{http_code}' -X POST "$PAY/payments" \
   -H 'Content-Type: application/json' \
   -d "{\"from\":\"$FROM\",\"to\":\"$TO\",\"amount\":100000}")
@@ -35,6 +38,8 @@ code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 check "код ответа" "201" "$code"
 check "status" "completed" "$(echo "$body" | php -r 'echo json_decode(stream_get_contents(STDIN))->status ?? "?";')"
+check "fee" "1000" "$(echo "$body" | php -r 'echo json_decode(stream_get_contents(STDIN))->fee ?? "?";')"
+check "total" "101000" "$(echo "$body" | php -r 'echo json_decode(stream_get_contents(STDIN))->total ?? "?";')"
 check "notification_sent" "1" "$(echo "$body" | php -r 'echo (int)(json_decode(stream_get_contents(STDIN))->notification_sent ?? 0);')"
 pay_id=$(echo "$body" | php -r 'echo json_decode(stream_get_contents(STDIN))->id ?? "";')
 
@@ -42,11 +47,13 @@ echo "3. GET платежа по id"
 code=$(curl -s -o /dev/null -w '%{http_code}' "$PAY/payments/$pay_id")
 check "GET /payments/$pay_id" "200" "$code"
 
-echo "4. Балансы в ledger"
+echo "4. Балансы в ledger (получатель +amount, отправитель -total, acc_fee +fee)"
 bal=$(curl -s "$LED/accounts/$TO/balance" | php -r 'echo json_decode(stream_get_contents(STDIN))->balance ?? "?";')
-check "баланс $TO" "100000" "$bal"
+check "баланс $TO (= amount)" "100000" "$bal"
 bal=$(curl -s "$LED/accounts/$FROM/balance" | php -r 'echo json_decode(stream_get_contents(STDIN))->balance ?? "?";')
-check "баланс $FROM" "-100000" "$bal"
+check "баланс $FROM (= -total)" "-101000" "$bal"
+fee_after=$(curl -s "$LED/accounts/acc_fee/balance" | php -r 'echo json_decode(stream_get_contents(STDIN))->balance ?? 0;')
+check "дельта acc_fee (= fee)" "1000" "$((fee_after - fee_before))"
 
 echo "5. Уведомление у получателя"
 cnt=$(curl -s "$NTF/notifications/$TO" | php -r 'echo count(json_decode(stream_get_contents(STDIN))->notifications ?? []);')

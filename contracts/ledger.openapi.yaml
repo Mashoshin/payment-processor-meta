@@ -24,30 +24,35 @@ paths:
                   service: { type: string, enum: [ledger] }
   /entries:
     post:
-      summary: Записать проводку
+      summary: Записать массив проводок атомарно
       description: >
-        Идемпотентности по payment_id в v1 НЕТ — повтор создаёт вторую проводку
-        (осознанная дыра, см. map.md).
+        Тело — массив из 1..2 проводок, записываемых атомарно (всё-или-ничего):
+        либо записаны все, либо ни одной. Если хотя бы одна проводка невалидна
+        (debit==credit, amount<=0, формат счёта) или массив пуст/длиннее 2 —
+        400 и в журнал не пишется ничего.
+        Идемпотентности по payment_id в v1 НЕТ — повтор всего запроса создаёт
+        дубль всех проводок (осознанная дыра, см. map.md).
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [payment_id, debit, credit, amount]
-              properties:
-                payment_id: { type: string, minLength: 1 }
-                debit: { $ref: '#/components/schemas/Account' }
-                credit: { $ref: '#/components/schemas/Account' }
-                amount: { $ref: '#/components/schemas/Amount' }
+              type: array
+              minItems: 1
+              maxItems: 2
+              items: { $ref: '#/components/schemas/EntryInput' }
       responses:
         '201':
-          description: Проводка записана
+          description: Проводки записаны (все переданные, в том же порядке)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Entry' }
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Entry' }
         '400':
-          description: Ошибка валидации (debit==credit, amount<=0, формат счёта)
+          description: >
+            Ошибка валидации (debit==credit, amount<=0, формат счёта, массив
+            пуст или длиннее 2). Атомарно: не записано ничего.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -89,6 +94,14 @@ components:
       minimum: 1
       description: Сумма в копейках
       example: 100000
+    EntryInput:
+      type: object
+      required: [payment_id, debit, credit, amount]
+      properties:
+        payment_id: { type: string, minLength: 1 }
+        debit: { $ref: '#/components/schemas/Account' }
+        credit: { $ref: '#/components/schemas/Account' }
+        amount: { $ref: '#/components/schemas/Amount' }
     Entry:
       type: object
       properties:

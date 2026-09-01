@@ -88,6 +88,8 @@ components:
         from: { $ref: '#/components/schemas/Account' }
         to: { $ref: '#/components/schemas/Account' }
         amount: { $ref: '#/components/schemas/Amount' }
+        fee: { type: integer, minimum: 1, description: "Комиссия в копейках, ceil(amount/100), минимум 1" }
+        total: { type: integer, description: "Итоговое списание с отправителя = amount + fee" }
         status: { type: string, enum: [pending, completed, failed] }
         notification_sent: { type: boolean }
         created_at: { type: string, format: date-time }

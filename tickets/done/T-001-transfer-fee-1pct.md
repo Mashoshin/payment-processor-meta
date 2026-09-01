@@ -1,6 +1,6 @@
 # T-001: Комиссия 1% с каждого перевода
 
-status: review          # open | in-progress | review | done
+status: done            # open | in-progress | review | done
 created: 2026-09-01
 author: e.mashoshin
 
@@ -349,3 +349,18 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8081/payments \
   и PR-«зонтик» в мете (контракты, план, тикет, журнал сессий, smoke.sh).
   Worktrees и локальные ветки удалены. Тикет переведён в `review/` — ревью
   и merge PR-ов за человеком, после merge всех — `/close-ticket`.
+- 2026-09-01 — `/close-ticket`: все три PR влиты человеком на GitHub.
+  - payments-api#1 — создан 2026-09-01, merged 2026-09-01T18:04:14Z (коммит `e6c5bbb`).
+  - ledger-api#1 — создан 2026-09-01, merged 2026-09-01T18:04:23Z (коммит `902827d`).
+  - мета-«зонтик» payment-processor-meta#1 — создан 2026-09-01,
+    merged 2026-09-01T18:04:42Z (merge `1d6fe37`).
+  Мета: `main` подтянут (уже на merge-коммите), локальная ветка `T-001` удалена.
+  Сервисы: `scripts/bootstrap.sh` подтянул main всех (ledger `e0016a9`,
+  payments `cece01c`, notifications `98877a0`). **Финальный smoke на влитом
+  main — GREEN** (health x3, платёж 100000 → fee 1000/total 101000/completed,
+  получатель +amount, отправитель −total, дельта acc_fee = fee, уведомление,
+  негативы from==to / amount 0 → 400). Обновлённый под комиссию `smoke.sh`
+  из меты работает корректно. Уборка: worktrees тикета отсутствуют (только
+  рабочие копии на main); remote-ветки `T-001-transfer-fee-1pct` удалены во
+  всех трёх репозиториях (GitHub не удалил их при merge). Тикет закрыт —
+  перенос в `tickets/done/`, housekeeping-коммит прямо в main меты.

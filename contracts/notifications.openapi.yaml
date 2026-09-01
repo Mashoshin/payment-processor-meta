@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: notifications
+  version: 1.0.0
+  description: >
+    Хранение уведомлений по счетам и лента уведомлений. Ничего не знает
+    про платежи и проводки.
+servers:
+  - url: http://localhost:8083
+paths:
+  /health:
+    get:
+      summary: Проверка живости
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                  service: { type: string, enum: [notifications] }
+  /notify:
+    post:
+      summary: Принять уведомление
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, message]
+              properties:
+                account: { $ref: '#/components/schemas/Account' }
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        '201':
+          description: Уведомление сохранено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notification' }
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /notifications/{account}:
+    get:
+      summary: Лента уведомлений счёта, новые первыми
+      description: Счёт без уведомлений — не ошибка, пустой список.
+      parameters:
+        - name: account
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Account' }
+      responses:
+        '200':
+          description: Лента
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account: { $ref: '#/components/schemas/Account' }
+                  notifications:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+        '400':
+          description: Некорректный формат счёта
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  schemas:
+    Account:
+      type: string
+      pattern: '^acc_[a-z0-9_]+$'
+      example: acc_petya
+    Notification:
+      type: object
+      properties:
+        id: { type: string, example: ntf_q1w2e3 }
+        account: { $ref: '#/components/schemas/Account' }
+        message: { type: string }
+        created_at: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string }

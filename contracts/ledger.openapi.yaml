@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: ledger
+  version: 1.0.0
+  description: >
+    Журнал проводок (двойная запись). Проводки неизменяемы, только дозапись.
+    Баланс = sum(credit) - sum(debit), отрицательный допустим.
+    Суммы — целые числа в копейках.
+servers:
+  - url: http://localhost:8082
+paths:
+  /health:
+    get:
+      summary: Проверка живости
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                  service: { type: string, enum: [ledger] }
+  /entries:
+    post:
+      summary: Записать проводку
+      description: >
+        Идемпотентности по payment_id в v1 НЕТ — повтор создаёт вторую проводку
+        (осознанная дыра, см. map.md).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_id, debit, credit, amount]
+              properties:
+                payment_id: { type: string, minLength: 1 }
+                debit: { $ref: '#/components/schemas/Account' }
+                credit: { $ref: '#/components/schemas/Account' }
+                amount: { $ref: '#/components/schemas/Amount' }
+      responses:
+        '201':
+          description: Проводка записана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Entry' }
+        '400':
+          description: Ошибка валидации (debit==credit, amount<=0, формат счёта)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /accounts/{id}/balance:
+    get:
+      summary: Баланс счёта
+      description: Счёт без проводок — не ошибка, баланс 0.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Account' }
+      responses:
+        '200':
+          description: Баланс
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account: { $ref: '#/components/schemas/Account' }
+                  balance:
+                    type: integer
+                    description: Копейки, может быть отрицательным
+                  entries_count: { type: integer }
+        '400':
+          description: Некорректный формат счёта
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  schemas:
+    Account:
+      type: string
+      pattern: '^acc_[a-z0-9_]+$'
+      example: acc_vasya
+    Amount:
+      type: integer
+      minimum: 1
+      description: Сумма в копейках
+      example: 100000
+    Entry:
+      type: object
+      properties:
+        id: { type: string, example: ent_x1y2z3 }
+        payment_id: { type: string }
+        debit: { $ref: '#/components/schemas/Account' }
+        credit: { $ref: '#/components/schemas/Account' }
+        amount: { $ref: '#/components/schemas/Amount' }
+        created_at: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string }

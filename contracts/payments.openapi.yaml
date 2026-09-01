@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info:
+  title: payments
+  version: 1.0.0
+  description: >
+    Оркестратор платёжного потока. Суммы — целые числа в копейках, валюта RUB.
+    Счета — строки ^acc_[a-z0-9_]+$.
+servers:
+  - url: http://localhost:8081
+paths:
+  /health:
+    get:
+      summary: Проверка живости
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                  service: { type: string, enum: [payments] }
+  /payments:
+    post:
+      summary: Создать платёж и провести его (проводка в ledger, уведомление в notifications)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from, to, amount]
+              properties:
+                from: { $ref: '#/components/schemas/Account' }
+                to: { $ref: '#/components/schemas/Account' }
+                amount: { $ref: '#/components/schemas/Amount' }
+      responses:
+        '201':
+          description: Платёж проведён (completed)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '400':
+          description: Ошибка валидации (from==to, amount<=0, формат счёта)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: ledger недоступен — платёж сохранён со статусом failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /payments/{id}:
+    get:
+      summary: Получить платёж
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Платёж
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '404':
+          description: Не найден
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  schemas:
+    Account:
+      type: string
+      pattern: '^acc_[a-z0-9_]+$'
+      example: acc_vasya
+    Amount:
+      type: integer
+      minimum: 1
+      description: Сумма в копейках
+      example: 100000
+    Payment:
+      type: object
+      properties:
+        id: { type: string, example: pay_a1b2c3d4 }
+        from: { $ref: '#/components/schemas/Account' }
+        to: { $ref: '#/components/schemas/Account' }
+        amount: { $ref: '#/components/schemas/Amount' }
+        status: { type: string, enum: [pending, completed, failed] }
+        notification_sent: { type: boolean }
+        created_at: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string }

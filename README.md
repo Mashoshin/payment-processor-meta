@@ -57,7 +57,10 @@ scripts/stop-all.sh    # гасит сервисы
                  сводка решений, подтверждение в чате
    → /to-plan  — та же сессия: итоги из контекста → план в plans/ (approved)
    → /plan-to-tickets → /decompose-ticket → утверждение (человек)
-   → /implement-ticket → /cross-review → /integration-check → merge
+   → /implement-ticket → /cross-review → /integration-check
+   → /submit-ticket — PR на каждый затронутый сервис + PR-«зонтик» в мете
+   → ревью и merge PR-ов (человек, на GitHub)
+   → /close-ticket — pull main, финальный smoke, тикет в done
 ```
 
 | Скилл (`.claude/skills/`) | Что делает |
@@ -69,6 +72,8 @@ scripts/stop-all.sh    # гасит сервисы
 | `/implement-ticket` | параллельные субагенты по worktree на каждый затронутый сервис |
 | `/cross-review` | независимые ревьюеры: сверка диффов с контрактами и между собой |
 | `/integration-check` | запуск всех сервисов + smoke + критерий приёмки тикета |
+| `/submit-ticket` | ветки → PR-ы со ссылками в тикете, worktrees убираются |
+| `/close-ticket` | после merge PR-ов человеком: pull, финальный smoke, тикет в done |
 
 ## Правила и их enforcement
 
@@ -92,7 +97,7 @@ map.md           карта системы: связи, сбои, инвариа
 registry/        манифесты сервисов (name, repo, port — источник топологии)
 contracts/       OpenAPI-контракты — источник правды об API
 plans/           планы: draft → approved → converted
-tickets/         тикеты: open/ → in-progress/ → done/
+tickets/         тикеты: open/ → in-progress/ → review/ → done/
 sessions/        журнал промптов (ведётся хуком автоматически)
 .claude/skills/  workflow-скиллы (см. таблицу выше)
 .claude/settings.json + scripts/hooks/  хуки-ограничители

@@ -47,6 +47,8 @@
 | `/implement-ticket` | подзадачи → параллельные агенты в worktrees сервисов |
 | `/cross-review` | сверка диффов всех сервисов с контрактом и между собой |
 | `/integration-check` | запуск всех сервисов + сквозной smoke-тест |
+| `/submit-ticket` | ветки → PR-ы (сервисы + «зонтик» в мете), worktrees убраны |
+| `/close-ticket` | после ручного merge PR-ов: pull, финальный smoke, тикет в done |
 
 Полный конвейер:
 
@@ -54,12 +56,18 @@
 /grill <идея>  (диалог: развилки, спор, сводка, подтверждение)
    → /to-plan  (та же сессия: план в plans/, approved после «да» в чате)
    → /plan-to-tickets → /decompose-ticket → утверждение
-   → /implement-ticket → /cross-review → /integration-check → merge → done
+   → /implement-ticket → /cross-review → /integration-check
+   → /submit-ticket → PR-ревью и merge (человек, на GitHub)
+   → /close-ticket → done
 ```
 
 Статусы плана: `draft → approved → converted`. Approved ставится только
 после явного подтверждения человека в чате — диалог зафиксирован журналом
 `sessions/`, это и есть подпись.
+
+Статусы тикета — папками: `open/ → in-progress/ → review/ → done/`.
+В `review/` тикет попадает после `/submit-ticket` — там он ждёт, пока
+человек отревьюит и вольёт PR-ы; агенты ничего не мержат сами.
 
 ## Команды
 

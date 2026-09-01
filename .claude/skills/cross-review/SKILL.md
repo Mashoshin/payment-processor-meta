@@ -32,5 +32,5 @@ description: Независимое ревью диффов всех серви�
 
 Вердикт: `approve` или `needs-work` со списком блокеров. При `needs-work` —
 конкретные замечания по сервисам; их исправление — повторный заход
-`/implement-ticket` по тем же worktrees. Merge разрешён только после `approve`
-и зелёного `/integration-check`.
+`/implement-ticket` по тем же worktrees. `/submit-ticket` (создание PR-ов)
+разрешён только после `approve` и зелёного `/integration-check`.

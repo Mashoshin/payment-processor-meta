@@ -1,6 +1,6 @@
 # T-XXX: <короткое название>
 
-status: open            # open | in-progress | done
+status: open            # open | in-progress | review | done
 created: YYYY-MM-DD
 author: <кто завёл>
 

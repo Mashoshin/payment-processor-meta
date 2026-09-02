@@ -30,19 +30,40 @@ paths:
           application/json:
             schema:
               type: object
-              required: [from, to, amount]
+              required: [from, to, amount, client_oid]
               properties:
                 from: { $ref: '#/components/schemas/Account' }
                 to: { $ref: '#/components/schemas/Account' }
                 amount: { $ref: '#/components/schemas/Amount' }
+                client_oid: { $ref: '#/components/schemas/ClientOid' }
       responses:
         '201':
-          description: Платёж проведён (completed)
+          description: >
+            Платёж проведён (completed). Отдаётся для новой пары
+            (from, client_oid), а также при повторе, если предыдущая попытка
+            завершилась failed — в этом случае id платежа переиспользуется.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '200':
+          description: >
+            Повтор: платёж с этой парой (from, client_oid) и теми же to/amount
+            уже существует — возвращается он же, ничего нового не создаётся
+            и не списывается. Может быть в статусе completed или pending.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Payment' }
         '400':
-          description: Ошибка валидации (from==to, amount<=0, формат счёта)
+          description: >
+            Ошибка валидации (from==to, amount<=0, формат счёта, client_oid
+            отсутствует или не соответствует формату)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: >
+            Платёж с этим client_oid у этого отправителя уже существует,
+            но с другими to и/или amount.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -81,6 +102,13 @@ components:
       minimum: 1
       description: Сумма в копейках
       example: 100000
+    ClientOid:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{1,64}$'
+      description: >
+        Идентификатор операции на стороне клиента (ключ идемпотентности).
+        Уникален в пределах отправителя: ключ пары (from, client_oid).
+      example: order-42
     Payment:
       type: object
       properties:
@@ -88,6 +116,7 @@ components:
         from: { $ref: '#/components/schemas/Account' }
         to: { $ref: '#/components/schemas/Account' }
         amount: { $ref: '#/components/schemas/Amount' }
+        client_oid: { $ref: '#/components/schemas/ClientOid' }
         fee: { type: integer, minimum: 1, description: "Комиссия в копейках, ceil(amount/100), минимум 1" }
         total: { type: integer, description: "Итоговое списание с отправителя = amount + fee" }
         status: { type: string, enum: [pending, completed, failed] }

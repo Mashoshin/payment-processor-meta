@@ -403,7 +403,7 @@ curl -s localhost:8082/accounts/acc_m/balance   # -10100, entries_count: 2 (не
 
 - payments: https://github.com/Mashoshin/payments-api/pull/2
 - ledger: https://github.com/Mashoshin/ledger-api/pull/2
-- meta: __META_PR__
+- meta (зонтик): https://github.com/Mashoshin/payment-processor-meta/pull/2
 
 ## Журнал
 
@@ -696,3 +696,12 @@ curl -s localhost:8082/accounts/acc_m/balance   # -10100, entries_count: 2 (не
   **Вердикт: GREEN.** Smoke зелёный, все девять пунктов критерия приёмки
   зелёные, cross-review дал approve после прохода 2. Следующий шаг —
   `/submit-ticket`.
+
+- **2026-09-02, /submit-ticket.** Ветки `T-002` обоих сервисов и меты
+  выложены на origin, созданы три PR (см. секцию «Pull Requests»).
+  Worktrees `workspace/payments-T-002` и `workspace/ledger-T-002` убраны,
+  локальные ветки `T-002` в сервисах удалены (код уже на origin);
+  в `workspace/` остались только main-копии. Тикет переведён в `review` —
+  ждёт ручного ревью и merge на GitHub. Ничего не мержилось.
+  Рекомендованный порядок merge: сначала **ledger** (расширение, обратно
+  совместимо), затем **payments** (ломающий контракт), затем зонтик меты.
